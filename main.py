@@ -1,140 +1,12 @@
-Z=' pnbrqk';S=[i for i in range(128)if not i&136];D={2:(33,31,18,14,-14,-18,-31,-33),3:(15,17,-15,-17),4:(1,-1,16,-16)};D[5]=D[6]=D[4]+D[3]
-def X(x):return ord(x[0])-97+16*(int(x[1])-1)
-def M(i):return chr(97+(i&7))+str((i>>4)+1)
-def P(f):
- a,t,c,e,h,n=f.split();b=[0]*128;i=112
- for x in a:
-  if x=='/':i-=24
-  elif x.isdigit():i+=int(x)
-  else:b[i]=(2*x.isupper()-1)*Z.index(x.lower());i+=1
- return b,2*(t=='w')-1,c,X(e)if e!='-'else-1,int(h),int(n)
-def A(b,k,s):
- for d in(15*s,17*s):
-  t=k-d
-  if not t&136 and b[t]==s:return 1
- for v,ds in D.items():
-  for d in ds:
-   t=k-d
-   while not t&136:
-    if b[t]:
-     if b[t]==s*v:return 1
-     break
-    if v%4==2:break
-    t-=d
- return 0
-def K(a,s):return A(a[0],a[0].index(6*s),-s)
-def do(a,m):
- b,s,c,e,h,n=a;p,t,q=m;x=b[p];H=b[t]
- if x==s and t==e:b[t-16*s]=0
- if x==6*s and abs(t-p)==2:
-  r=p+3 if t>p else p-4;z=(p+t)//2;b[z]=b[r];b[r]=0
- b[p]=0;b[t]=q*s or x
- for z,r in zip((0,7,112,119),'QKqk'):
-  if z in(p,t):c=c.replace(r,'')
- if x==6*s:
-  for r in('KQ'if s>0 else'kq'):c=c.replace(r,'')
- return(b,-s,c,t-16*s if x==s and t-p==32*s else-1,0 if x==s or H else h+1,n+(s<0))
-def G(a):
- b,s,c,e,*_=a;L=[]
- for p in S:
-  v=b[p]*s
-  if v<1:continue
-  T=[]
-  if v==1:
-   t=p+16*s
-   if not t&136 and not b[t]:
-    T+=[t];z=t+16*s
-    if p//16==(1 if s>0 else 6)and not b[z]:T+=[z]
-   for t in(p+15*s,p+17*s):
-    if not t&136 and(b[t]*s<0 or t==e):T+=[t]
-  else:
-   for d in D[v]:
-    t=p+d
-    while not t&136:
-     if b[t]*s>0:break
-     T+=[t]
-     if b[t]or v%4==2:break
-     t+=d
-   if v==6 and p==(4 if s>0 else 116)and not K(a,s):
-    for r,d in zip('KQ',(1,-1)):
-     if(r if s>0 else r.lower())in c and b[p+(3 if d>0 else-4)]==4*s and all(not b[p+j*d]for j in range(1,3+(d<0)))and not any(A(b,p+j*d,-s)for j in(1,2)):T.append(p+2*d)
-  for t in T:
-   for q in([5,4,3,2]if v==1 and t//16 in(0,7)else[0]):
-    if not K(H(a,(p,t,q)),s):L.append((p,t,q))
- return L
-def O(m):return M(m[0])+M(m[1])+(Z[m[2]]if m[2]else'')
-def gen(fen):return[O(m)for m in G(P(fen))]
-def apply(fen,uci):
- b,s,c,e,h,n=do(P(fen),(X(uci[:2]),X(uci[2:4]),Z.index(uci[4:])if uci[4:]else 0));R=[]
- for r in range(7,-1,-1):
-  x='';k=0
-  for i in range(8):
-   v=b[r*16+i]
-   if not v:k+=1
-   else:
-    if k:x+=str(k);k=0
-    x+=Z[v].upper()if v>0 else Z[-v]
-  R.append(x+str(k or''))
- return'/'.join(R)+f" {'w'if s>0 else'b'} {c or'-'} {M(e)if e>=0 else'-'} {h} {n}"
-V=0,100,320,330,500,900,0;C=40000;N=Y=0
-def E(a):
- b,s,*_=a;z=0
- for i in S:
-  v=b[i]
-  if v:
-   q=abs(v);y,x=divmod(i,16);z+=(v//q)*(V[q]+(max(0,3-abs(2*x-7)//2-abs(2*y-7)//2)if q<4 else 0))
- return z*s
-def H(a,m):return do((a[0][:],*a[1:]),m)
-def T(a,m):return V[abs(a[0][m[1]])]or 100*(a[0][m[0]]==a[1] and m[1]==a[3])
-def I(a,L,p=0):return sorted(L,key=lambda m:(-T(a,m),V[abs(a[0][m[0]])]if T(a,m)else m!=k[p]))
-k=[None]*8
-def W():
- global N,Y;N+=1;Y|=N>=C
-def Q(a,l,u,p):
- W();v=E(a)
- if Y:return v
- c=K(a,a[1])
- if not c:
-  if v>=u:return v
-  l=max(l,v)
- L=G(a)
- if not L:return-1e5+p if c else 0
- for m in I(a,L):
-  if c or T(a,m)or m[2]:
-   l=max(l,-Q(H(a,m),-u,-l,p+1))
-   if l>=u or Y:break
- return l
-def F(a,d,l,u,p):
- if not d:return Q(a,l,u,p)
- W();L=G(a)
- if not L:return-1e5+p if K(a,a[1])else 0
- if Y:return E(a)
- v=-1e6
- for m in I(a,L,p):
-  q=-F(H(a,m),d-1,-u,-l,p+1);v=max(v,q);l=max(l,q)
-  if l>=u:
-   if not(T(a,m)or m[2]):k[p]=m
-   break
-  if Y:break
- return v
-def B(fen,depth=3):
- global N,Y,k;N=1;Y=0;k=[None]*8;a=P(fen);L=I(a,G(a));w=L[0]if L else None;v=-1e6
- for m in L:
-  q=-F(H(a,m),depth-1,-1e6,-v,1)
-  if Y:break
-  if q>v:v,w=q,m
- return w and O(w)
-import json,os,urllib.request as U,urllib.error as R
-def J(p,b):return json.load(U.urlopen(U.Request(os.getenv('MAKEFUN_ENV_URL')+p,json.dumps(b).encode(),{'Content-Type':'application/json'})))
-while True:
- g=J('/game',{})
- if g['status']=='done':break
- while g['status']=='your_move':
-  m=B(g['fen']);L=[u for u in gen(g['fen'])if u!=m]
-  while True:
-   try:g=J('/move',{'game':g['game'],'move':m});break
-   except R.HTTPError as e:
-    if e.code!=400:raise
-    e.close()
-    if not L:L=gen(g['fen'])
-    m=L.pop(0)
+#coding:latin1
+B='5c564fd2d464a3f3b1c3aad8cfd2d3fe38b1f1d3c5d3c5f1b5c9ac97d4c67ab2d7d1d434546df1d33187f3e2e46bcc0bg1f3793151e1g187f611c4d5fbd56cc4d523854bd2d46e66c2b1c32ab6d4e5d453d57cb7b57df1c0e4d637bd2ff8e775cd92e7e5a22d97b7c697f601e7e6843241f6e4ebd354c8e66e7105b8d7240a0ae8g8517215b8c67211acf6d5b7f76ec5d426a92bf6e4c0f006c5d64ebf88b7b57724e3e4d65cf6fae5d4a6d382b8d7427de5e7e562ca9dd7d63dfe60b8d7e6184bf3g51e20a7c6d54724e3b1c36fb7f4b8c6d9217af6d532146ce7e52e84e4e8g88c9071e4e55e2504a4b35704adf7f531efbae5d453471ae7e577b5e9b1c309da46d7d6e8f667b8c6889945f3e5c11114f1d3205ad4d7d5556478e6d5d835d7e2e41e45bdf3d4a56952b8c6226d95d7d511ea04b5b4074d6cb5c66371f2d4d51cd6dab5d7ea3116d7d6d4e7e6g1f3c7a375g1e2723fd4b7b58dadddc3e45e0606c1e361f304g1f3fd4824d8d5ab292ac8f52fef2ff1d33bfee0e8g85dfa03f8d64dbbbeb5c6529d2ef3d4727c81b1c395cde3d7d595c270d5c362f239g1f3826d3ab7b5123654d5c4bd3dcef6g472ad5ae8g85a8410d5c3a9b5acc8e67510a3d2d4c73813c6a5b34c92c3e2001356d7c6bfe617c7c5acbc3cd6d5bed4e1d7c64f143eb8c6a928aag1f3cd3249f2f4d1f611b8c6b569f8b8d78cadd8e6d5595517d2d33e8385e7e5a6b795b8c6b37fa0c4b3b14d27b4c3b041b7e4d6f6a58bc7c5b42de5b8a6a2d362e4e5a26d54b8c6be328ce7e56c3620f1c4fd959ac6d54ce6d6e3d27bc814e6d593e3a1d2c3566b95d4c6994e39f6e4dd62b0e8g8b77f72f6e4e912b7f3e540e242d7e5212da1e7e541091ef2f4093813d6e5badad0b7b53ff0b4f7e6ea64abe1g1cf6feab1c382a6d2b1c3abc7acd2d35c65c2a2a337d274f3e5801f38g1f3aeed5bb1c3c569d1g1e282a06ba2a38ba65fg1f32d8cadg1f3e0d280d1f3ea40c5f1d332be18e4e5a72905c2c4244d0fc4d537080fb1c31b719aa2a375ee5cb1c3420e2de4e5132edae2e4fccc89c4d59238e0b1d2deccb5g1f34f4352c4d598c9ead7d59986f0f8b4fcc6ced6d5a2fa13f6d5ce011ed8e75f455eb8c6b9732db7c66d23cag8f6e6df8fc5d4e23552c5d4218857f7f6a2edbcf5g6c2fc18b8d775220dd6e59966f8d5b4e2206de6d536f51db7b5efb06ff6e4d84715d7d57d7236e8g88635f6d5c3abeee4f8d62bc61ee7e50bb194g8f6ca7598e6d5'
+import zlib
+exec(zlib.decompress('''X[oÛ:~×¯P‘6•H¾¶r İvQ4¤ANq\000C-d‰qdëbKò-Åùï;CR’İf E‡3ß\\é§"OÍ—$™qºÊ‹Ê‹°ß3pzS$°p^ˆõF”UMğ >¬æ+‘Š¢È‹šğËããıgœP$yY/ÌE%²­š]”yVÏ\'y±h“®Jã‘[æıİÇ‡o×Ëu1ËV–ñ7ŸÆær7ãÌ,‚l.ˆÛ{GÍøÉÌrîÌí|ã\'.³]æà9bî^Cæá5¦ÆWXÀpÀÜwğzÇú@ÿı>¼úÔøÂ­ëoËµe<\000¡û¹n™Cïœ8ÌuÖïÁÈ†0~?tXO¨‰\'³\\“’z…¨6EfæEDÊ©ãSûı¸ë:d8²ÕœëSE¿	IÜĞ‡ÏÊø­;¢İ²*È;;¾¸€EJRêfÌlÅSÃÔ›$‡.<´K,3›kkº²]!Y™")…iYŠÅ“ÈÈ2IXÉ
+&øÓy¹JâŠĞ©7ğ\'3Âv\000NCAÌŠ|‡0‹l“Š"¨I4½uaQäc.xÜqG0À\r¡´I¾Ã<=<Ë(#oÑåqV‘â
+%‰ÌÙtáóÇó8‹Ä„€±íö;7&ùN„Ò	ìtmgÌEÎ%çÖÎRÊ™ËMJÜËKí,<ú‹ô%e`!!\'ÄnÙ\r‰OP-ÉŒ-Y‰º!¯70])©Sv]­ö²fíuô:3È"¥/k‹ºGl¾ş{ß·f,:ÕæÓ‰\000»ç8-+	jÅ‘Y§ÔV¨Ò8â|N‰ïM²+> úSÉ°àÈõH\0004P!‚%À‘)Í·¢˜¤±5Q ·£Í¿ñX%V¢àù—®æYgaÔ¹R<ğ£îNŒÚ¬¥@8B]\rÒ&S5-\\ÉÉ!°>ëQï‹$R¡"iZ‡3Û%GM\000[eœ“‘ô­+G9…K…èîü–mw§vãÑy4ˆ.Oí!¯˜˜(³\\::`-şT ÑàOe•L0¤¿«×(×zìW\rnOíú4x¾ê×Sñzj §´<h‹H~ó®ÆQA	îx\r|8…:IÃy¯\\STRºQ¯q,íZ‹jÔÉ·„Z*©[*˜ )#\000xÒVâŒ,//‰sbE ĞrÇ]ÒÇ¥¨^²bnĞ)›‘(’’â¨×QãL¦YØ}¿õ
+•.`³ËÖ(rè~Ë§îğæ¥ßbiVJ)OA\000†V>×Ó3Ú&}­ÚùªÖTbÕÄáqm˜¨°›ğòàcîÀ2Ì
+”mëBehÌË:ş…dX«JØR¯4BÁ¬$±½ àWzÄÉÂéÅEo²ä¯G.ÕÉˆ*İäñ\000 cÅÙ-ˆ…Ï €ÈêD öÀ~ï$Q\'b$äRuÈÖÜa	wP\r¿Ÿ¤%Wyªs/S”T%A©Ÿùõ9´$¡HTBÇ!"’–l)<	ÒY˜©‡eªÏŒ¥ì*µ´AŠ6HKäp‰=ğNi›ÌÑ¨ ,ªê›Â¤T%ùòÈIRH5Š|î¾–¼ó_ò™ö@6xµ
+×5
+¸©¢>WE]N±MPò²@Õc8C~í7«²"‹¥Ã`Rvê½6®Ø°ô:8{Ï›&óã$äîÀF“ô:{{Lõğ\000ÃFÌïÓÊï’q‡Œìí†Úœ®Â ì@şrØRD04[TÒ÷†\'¡à|,û&[ÔÁ@|:­jVmhØ#È“ş˜Ö¨ËÓhAM0bèd«Ç_–F"e—É;ş± gîğ\rxZ£noMİ¶»¢v…lM™ÈU dJû“ÀtŠ§tG¾ıŞõíW%ÉØo¢Ç…NÈqTœ‹ ŸÁøØKPöy’Ï‚Ä¼3Ì;ÙÁö»+Ø\000µ5ãx8u+0å‘MÖ<‚|Ş¤µĞ0·Üî#¯n"Y¯Ñé·¼ì`£u,úQ¹×°½â/µ[*i°\'[Àz†)E¹æ7ÜsÅJ/KRH$º›±5\000ßXßäƒ%PhuÑ.«ËïÂ—#2Y#ÿ\'ÅëJÇD•ôQ­İå™ ;×ÓÄÇvÜ¬¢’X)­+Èrà0;îd·XY6e™Ó.®"4—ä‰İ "˜—¬·Îho½%òVM¾u¾Ècˆèãî‹,Ì#A¬ ãúó3w4{î¿ÇdLÈ)\\fjÔ?—UPTå.®	Šñ%?õøGHà#/îºp—A&75Bië‰ì|’ı5ÿõÏä«ŒÚ+G2ÌÛ:×ê¤wœp÷uÂ½Çô¹Ç‡„—NfpÇärSx‘:qŸ[¯6×v«{ŠcCãÑÔ¡/õ©aux¯ê³Ò6¾qF%j±&+!VuB†[*Ñ—_¢/ÃD]i‰uûáúó¿ÿºûùùîûÏ¿n,Ú]©-‰3QöËú4Ã"«ìÇÃJX¬ÀœaPÅyv7bëªs|±Éˆl³eCFæG‰¬‹y
+‹ıº©æ«6¥åÃµ&ğ,¯¹ÌÛE¸7òMñ‹£¤0o8,ËH”“@3I¹t@˜+Z>øaİ]ÊŒ<Mıîtß~ß ¤û7<Õ}zU¼¹PÃ¢8p@V<KÊEVøMÜ4‚bŠÕÑ/fPš¢mïÄ9÷†0Bƒ¸ÍUR~™ßƒd#ÔO\rÿ'''.encode('latin1'),-15))
+while True:run();break
